@@ -1,9 +1,9 @@
-import { Response, NextFunction } from 'express';
+// src/middlewares/auth.middleware.ts
+import { Request, Response, NextFunction } from 'express'; // Chỉ cần dùng Request gốc
 import jwt from 'jsonwebtoken';
-import { AuthenticatedRequest } from '../types';
 
 export const authMiddleware = (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {

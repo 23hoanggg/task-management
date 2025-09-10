@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import connectDB from './config/database';
 import authRoutes from './routes/auth.route';
+import boardRoutes from './routes/board.route';
 import cookieParser from 'cookie-parser';
 
 connectDB();
@@ -17,6 +18,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/boards', boardRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is listening on http://localhost:${PORT}`);

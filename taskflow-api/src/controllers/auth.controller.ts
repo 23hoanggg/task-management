@@ -81,19 +81,21 @@ export const refreshAccessToken = async (
 };
 
 export const getMe = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
     if (!userId) {
       return res.sendStatus(401);
     }
+
     const user = await userService.findUserById(userId);
     if (!user) {
       return res.sendStatus(404);
     }
+
     res.status(200).json({ data: user });
   } catch (error) {
     next(error);
