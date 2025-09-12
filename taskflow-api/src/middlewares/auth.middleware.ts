@@ -1,5 +1,4 @@
-// src/middlewares/auth.middleware.ts
-import { Request, Response, NextFunction } from 'express'; // Chỉ cần dùng Request gốc
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 export const authMiddleware = (

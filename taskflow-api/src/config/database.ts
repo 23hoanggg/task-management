@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
@@ -10,9 +10,9 @@ const connectDB = async () => {
     if (error instanceof Error) {
       console.error(`❌ Error connecting to MongoDB: ${error.message}`);
     } else {
-      console.error("An unknown error occurred while connecting to MongoDB");
+      console.error('An unknown error occurred while connecting to MongoDB');
     }
-    process.exit(1); // Thoát khỏi tiến trình nếu không kết nối được DB
+    process.exit(1);
   }
 };
 

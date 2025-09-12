@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/auth.service';
 import * as userService from '../services/user.service';
-import { AuthenticatedRequest } from '../types';
 
 export const register = async (
   req: Request,
@@ -81,7 +80,7 @@ export const refreshAccessToken = async (
 };
 
 export const getMe = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
