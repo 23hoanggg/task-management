@@ -7,6 +7,9 @@ import {
   updateListSchema,
 } from '../validations/list.validation';
 import * as listController from '../controllers/list.controller';
+import taskRoutes from './task.route';
+import { createTaskSchema } from '../validations/task.validation';
+import * as taskController from '../controllers/task.controller';
 
 const router = Router({ mergeParams: true });
 
@@ -22,4 +25,9 @@ router
   .patch(validate(updateListSchema), listController.updateList)
   .delete(validate(listIdParamSchema), listController.deleteList);
 
+router.use('/:listId/tasks', taskRoutes);
+
+router
+  .route('/:listId/tasks')
+  .post(validate(createTaskSchema), taskController.createTask);
 export default router;
