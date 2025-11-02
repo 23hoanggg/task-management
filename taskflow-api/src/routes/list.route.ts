@@ -14,7 +14,7 @@ import * as taskController from '../controllers/task.controller';
 const router = Router({ mergeParams: true });
 
 router.use(authMiddleware);
-
+router.patch('/reorder', listController.reorderLists);
 router
   .route('/')
   .post(validate(createListSchema), listController.createList)

@@ -9,7 +9,7 @@ import * as taskController from '../controllers/task.controller';
 
 const router = Router();
 router.use(authMiddleware);
-
+router.patch('/reorder', taskController.reorderTasks);
 router
   .route('/:taskId')
   .get(validate(taskIdParamSchema), taskController.getTaskById)

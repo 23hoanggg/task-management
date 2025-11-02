@@ -89,3 +89,20 @@ export const deleteTask = async (
     next(error);
   }
 };
+
+export const reorderTasks = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    // req.body sẽ có dạng { tasks: [{ _id, order, listId }, ...] }
+    const { tasks } = req.body;
+    const userId = req.user!.userId;
+
+    await taskService.reorderTasks(tasks, userId);
+    res.status(200).json({ message: 'Task order updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};

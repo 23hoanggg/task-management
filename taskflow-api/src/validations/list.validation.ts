@@ -1,4 +1,3 @@
-// src/validations/list.validation.ts
 import { z } from 'zod';
 
 export const createListSchema = z.object({

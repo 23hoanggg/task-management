@@ -78,3 +78,20 @@ export const deleteList = async (
     next(error);
   }
 };
+
+export const reorderLists = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    // req.body sẽ có dạng { lists: [{ _id, order }, ...] }
+    const { lists } = req.body;
+    const userId = req.user!.userId;
+
+    await listService.reorderLists(lists, userId);
+    res.status(200).json({ message: 'List order updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};

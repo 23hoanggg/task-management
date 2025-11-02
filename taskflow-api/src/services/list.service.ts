@@ -62,3 +62,29 @@ export const deleteList = async (listId: string, userId: string) => {
 
   await List.findByIdAndDelete(listId);
 };
+
+export const reorderLists = async (
+  listsToUpdate: { _id: string; order: number }[],
+  userId: string,
+) => {
+  if (!listsToUpdate || listsToUpdate.length === 0) {
+    return;
+  }
+
+  // Phân quyền: Kiểm tra user có quyền với board chứa các list này không
+  const firstList = await List.findById(listsToUpdate[0]!._id);
+  if (!firstList) {
+    throw new Error('List not found');
+  }
+  await boardService.getBoardById(firstList.boardId.toString(), userId);
+
+  // Tạo các lệnh cập nhật cho bulkWrite
+  const bulkOps = listsToUpdate.map((list) => ({
+    updateOne: {
+      filter: { _id: list._id },
+      update: { $set: { order: list.order } },
+    },
+  }));
+
+  await List.bulkWrite(bulkOps);
+};
