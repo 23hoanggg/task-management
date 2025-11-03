@@ -1,4 +1,5 @@
 import { Board, IBoard } from '../models/board.model';
+import { User } from '../models/user.model';
 
 export const createBoard = async (
   boardData: { name: string },
@@ -65,4 +66,53 @@ export const deleteBoard = async (boardId: string, userId: string) => {
     throw new Error('Forbidden');
   }
   await Board.findByIdAndDelete(board);
+};
+
+export const getBoardMembers = async (boardId: string, userId: string) => {
+  // 1. Kiểm tra quyền truy cập: Dùng lại hàm getBoardById
+  const board = await getBoardById(boardId, userId);
+
+  if (!board) {
+    throw new Error('Board not found');
+  }
+
+  // 2. Lấy thông tin chi tiết của các thành viên
+  await board.populate({
+    path: 'memberIds',
+    select: 'fullName email _id', // Chỉ lấy các trường này
+  });
+
+  return board.memberIds;
+};
+
+export const addMemberToBoard = async (
+  boardId: string,
+  email: string,
+  userId: string,
+) => {
+  const board = await Board.findById(boardId);
+  if (!board) {
+    throw new Error('Board not found');
+  }
+
+  if (board.ownerId.toString() !== userId) {
+    throw new Error('Forbidden: Only the board owner can add members');
+  }
+
+  const userToAdd = await User.findOne({ email });
+  if (!userToAdd) {
+    throw new Error('User not found with this email');
+  }
+
+  const isAlreadyMember = board.memberIds.some(
+    (memberId) => memberId.toString() === (userToAdd as any)._id.toString(),
+  );
+  if (isAlreadyMember) {
+    throw new Error('User is already a member of this board');
+  }
+
+  board.memberIds.push((userToAdd as any)._id);
+
+  await board.save();
+  return board;
 };

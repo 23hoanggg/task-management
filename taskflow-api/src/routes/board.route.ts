@@ -25,4 +25,7 @@ router
   .delete(boardController.deleteBoard);
 
 router.route('/:boardId/tasks').get(taskController.getTasksByBoard);
+router.get('/:boardId/members', boardController.getMembers);
+router.post('/:boardId/members', boardController.addMember);
+
 export default router;

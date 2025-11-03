@@ -109,3 +109,47 @@ export const deleteBoard = async (
     next(error);
   }
 };
+
+export const getMembers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { boardId } = req.params;
+    const userId = req.user!.userId;
+
+    if (!boardId) {
+      return res.status(400).json({ message: 'Board ID is required' });
+    }
+
+    const members = await boardService.getBoardMembers(boardId, userId);
+    res.status(200).json({ data: members });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { boardId } = req.params;
+    const { email } = req.body;
+    const userId = req.user!.userId;
+
+    if (!boardId) {
+      return res.status(400).json({ message: 'Board ID is required' });
+    }
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    await boardService.addMemberToBoard(boardId, email, userId);
+    res.status(200).json({ message: 'Member added successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
