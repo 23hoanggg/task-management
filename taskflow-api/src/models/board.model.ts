@@ -3,7 +3,11 @@ import { Document, Schema, model, Types } from 'mongoose';
 export interface IBoard extends Document {
   name: string;
   ownerId: Types.ObjectId;
+  coManagerIds: Types.ObjectId[];
   memberIds: Types.ObjectId[];
+  dueDate?: Date; 
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const boardSchema = new Schema<IBoard>(
@@ -19,12 +23,21 @@ const boardSchema = new Schema<IBoard>(
       required: true,
       index: true,
     },
+    coManagerIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     memberIds: [
       {
         type: Schema.Types.ObjectId,
         ref: 'User',
       },
     ],
+    dueDate: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
