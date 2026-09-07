@@ -2,15 +2,23 @@ import { Document, Schema, model, Types } from 'mongoose';
 
 export interface IList extends Document {
   name: string;
+  description?: string; 
   boardId: Types.ObjectId;
   order: number;
+  dueDate?: Date; 
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const listSchema = new Schema(
+const listSchema = new Schema<IList>(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
       trim: true,
     },
     boardId: {
@@ -22,6 +30,9 @@ const listSchema = new Schema(
     order: {
       type: Number,
       required: true,
+    },
+    dueDate: {
+      type: Date,
     },
   },
   {

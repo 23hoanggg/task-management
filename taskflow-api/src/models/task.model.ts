@@ -5,11 +5,13 @@ export interface ITask extends Document {
   description?: string;
   boardId: Types.ObjectId;
   listId: Types.ObjectId;
-  ownerId: Types.ObjectId;
-  assigneeId?: Types.ObjectId;
+  creatorId: Types.ObjectId; 
+  assigneeIds: Types.ObjectId[];
   order: number;
   priority: 'low' | 'medium' | 'high';
   dueDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const taskSchema = new Schema<ITask>(
@@ -35,15 +37,17 @@ const taskSchema = new Schema<ITask>(
       required: true,
       index: true,
     },
-    ownerId: {
+    creatorId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    assigneeId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    },
+    assigneeIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     order: {
       type: Number,
       required: true,
@@ -58,7 +62,7 @@ const taskSchema = new Schema<ITask>(
     },
   },
   {
-    timestamps: true,
+    timestamps: true, 
     versionKey: false,
   },
 );
