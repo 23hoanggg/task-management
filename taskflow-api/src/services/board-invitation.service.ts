@@ -1,6 +1,6 @@
 import { BoardInvitation } from '../models/board-invitation.model';
 import { User } from '../models/user.model';
-import { Board } from '../models/board.model'; // Bổ sung import Board
+import { Board } from '../models/board.model';
 import * as boardService from './board.service';
 import * as notificationService from './notification.service';
 
