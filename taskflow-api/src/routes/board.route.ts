@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate';
-import { createBoardSchema, updateBoardSchema } from '../validations/board.validation';
+import {
+  createBoardSchema,
+  updateBoardSchema,
+} from '../validations/board.validation';
 import * as boardController from '../controllers/board.controller';
 import * as taskController from '../controllers/task.controller';
 import * as invitationController from '../controllers/board-invitation.controller';
@@ -28,8 +31,11 @@ router
 
 // Quản lý Members & Co-managers
 router.get('/:boardId/members', boardController.getMembers);
-router.post('/:boardId/co-managers/:targetUserId', boardController.addCoManager);
-router.delete('/:boardId/co-managers/:targetUserId', boardController.removeCoManager);
+router.post('/:boardId/co-managers', boardController.addCoManager);
+router.delete(
+  '/:boardId/co-managers/:targetUserId',
+  boardController.removeCoManager,
+);
 
 // Gửi lời mời qua Email
 router.post('/:boardId/invitations', invitationController.inviteUser);

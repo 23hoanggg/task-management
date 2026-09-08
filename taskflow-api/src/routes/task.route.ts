@@ -1,15 +1,13 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate';
-import {
-  updateTaskSchema,
-  taskIdParamSchema,
-} from '../validations/task.validation';
+import { updateTaskSchema, taskIdParamSchema } from '../validations/task.validation';
 import * as taskController from '../controllers/task.controller';
 
-const router = Router();
+const router = Router({ mergeParams: true });
+
 router.use(authMiddleware);
-router.patch('/reorder', taskController.reorderTasks);
+
 router
   .route('/:taskId')
   .get(validate(taskIdParamSchema), taskController.getTaskById)
