@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import { Task } from '../models/task.model';
 import * as taskService from '../services/task.service';
 
 export const createTask = async (
@@ -9,10 +8,16 @@ export const createTask = async (
 ) => {
   try {
     const { listId } = req.params;
+    const { boardId, ...taskData } = req.body; 
     const userId = req.user?.userId;
 
+    if (!boardId) {
+      return res.status(400).json({ message: 'boardId is required to create a task' });
+    }
+
     const newTask = await taskService.createTask(
-      req.body,
+      taskData,
+      boardId as string,
       listId as string,
       userId as string,
     );
@@ -31,10 +36,7 @@ export const getTasksByBoard = async (
     const { boardId } = req.params;
     const userId = req.user!.userId;
 
-    const tasks = await taskService.getTasksByBoardId(
-      boardId as string,
-      userId,
-    );
+    const tasks = await taskService.getTasksByBoardId(boardId as string, userId);
     res.status(200).json({ data: tasks });
   } catch (error) {
     next(error);
@@ -64,13 +66,12 @@ export const updateTask = async (
   try {
     const { taskId } = req.params;
     const userId = req.user!.userId;
-    const updatedTask = await taskService.updateTask(
-      taskId as string,
-      userId,
-      req.body,
-    );
+    const updatedTask = await taskService.updateTask(taskId as string, userId, req.body);
     res.status(200).json({ data: updatedTask });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
@@ -86,6 +87,9 @@ export const deleteTask = async (
     await taskService.deleteTask(taskId as string, userId);
     res.sendStatus(204);
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
@@ -96,13 +100,15 @@ export const reorderTasks = async (
   next: NextFunction,
 ) => {
   try {
-    // req.body sẽ có dạng { tasks: [{ _id, order, listId }, ...] }
     const { tasks } = req.body;
     const userId = req.user!.userId;
 
     await taskService.reorderTasks(tasks, userId);
     res.status(200).json({ message: 'Task order updated successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
