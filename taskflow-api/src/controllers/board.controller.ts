@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import * as boardService from '../services/board.service';
-import { Board } from '../models/board.model';
 
 export const createBoard = async (
   req: Request,
@@ -47,10 +46,8 @@ export const getBoardById = async (
 
     res.status(200).json({ data: board });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Forbidden') {
-      return res
-        .status(403)
-        .json({ message: 'You do not have permission to view this board' });
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
     }
     next(error);
   }
@@ -65,21 +62,17 @@ export const updateBoard = async (
     const { boardId } = req.params;
     const userId = req.user?.userId;
 
-    const updateBoard = await boardService.updateBoard(
+    const updatedBoard = await boardService.updateBoard(
       boardId as string,
       userId as string,
       req.body,
     );
 
-    res.status(200).json({ data: updateBoard });
+    res.status(200).json({ data: updatedBoard });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message === 'Not Found')
-        return res.status(404).json({ message: 'Board not found' });
-      if (error.message === 'Forbidden')
-        return res
-          .status(403)
-          .json({ message: 'You are not the owner of this board' });
+      if (error.message === 'Not Found') return res.status(404).json({ message: 'Board not found' });
+      if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
     }
     next(error);
   }
@@ -95,16 +88,11 @@ export const deleteBoard = async (
     const userId = req.user?.userId;
 
     await boardService.deleteBoard(boardId as string, userId as string);
-
     res.sendStatus(204);
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message === 'Not Found')
-        return res.status(404).json({ message: 'Board not found' });
-      if (error.message === 'Forbidden')
-        return res
-          .status(403)
-          .json({ message: 'You are not the owner of this board' });
+      if (error.message === 'Not Found') return res.status(404).json({ message: 'Board not found' });
+      if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
     }
     next(error);
   }
@@ -119,37 +107,46 @@ export const getMembers = async (
     const { boardId } = req.params;
     const userId = req.user!.userId;
 
-    if (!boardId) {
-      return res.status(400).json({ message: 'Board ID is required' });
-    }
+    if (!boardId) return res.status(400).json({ message: 'Board ID is required' });
 
-    const members = await boardService.getBoardMembers(boardId, userId);
-    res.status(200).json({ data: members });
+    const membersInfo = await boardService.getBoardMembers(boardId, userId);
+    res.status(200).json({ data: membersInfo });
   } catch (error) {
     next(error);
   }
 };
 
-export const addMember = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const addCoManager = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { boardId } = req.params;
-    const { email } = req.body;
+    const { targetUserId } = req.body;
     const userId = req.user!.userId;
 
-    if (!boardId) {
-      return res.status(400).json({ message: 'Board ID is required' });
-    }
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
+    if (!boardId || !targetUserId) {
+      return res.status(400).json({ message: 'Board ID and target user ID are required' });
     }
 
-    await boardService.addMemberToBoard(boardId, email, userId);
-    res.status(200).json({ message: 'Member added successfully' });
+    const board = await boardService.addCoManager(boardId, targetUserId, userId);
+    res.status(200).json({ message: 'Co-manager added successfully', data: board });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
+    next(error);
+  }
+};
+
+export const removeCoManager = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { boardId, targetUserId } = req.params;
+    const userId = req.user!.userId;
+
+    const board = await boardService.removeCoManager(boardId as string, targetUserId as string, userId);
+    res.status(200).json({ message: 'Co-manager removed successfully', data: board });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };

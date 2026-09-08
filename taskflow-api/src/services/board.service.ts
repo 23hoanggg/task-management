@@ -1,32 +1,46 @@
 import { Board, IBoard } from '../models/board.model';
-import { User } from '../models/user.model';
+import { Types } from 'mongoose';
+
+export const getUserRoleInBoard = (
+  board: IBoard,
+  userId: string,
+): 'owner' | 'co-manager' | 'member' | null => {
+  if (board.ownerId.toString() === userId) return 'owner';
+  if (board.coManagerIds.some((id) => id.toString() === userId))
+    return 'co-manager';
+  if (board.memberIds.some((id) => id.toString() === userId)) return 'member';
+  return null;
+};
 
 export const createBoard = async (
-  boardData: { name: string },
+  boardData: { name: string; dueDate?: Date },
   ownerId: string,
 ): Promise<IBoard> => {
   const newBoard = await Board.create({
     ...boardData,
     ownerId: ownerId,
+    coManagerIds: [],
     memberIds: [ownerId],
   });
   return newBoard;
 };
 
+// lay tat ca board ma user tham gia
 export const getBoardByUserId = async (userId: string): Promise<IBoard[]> => {
   const boards = await Board.find({
-    $or: [{ ownerId: userId }, { memberIds: userId }],
+    $or: [{ ownerId: userId }, { coManagerIds: userId }, { memberIds: userId }],
   });
   return boards;
 };
 
+// lay thong tin chi tiet 1 board
 export const getBoardById = async (boardId: string, userId: string) => {
   const board = await Board.findById(boardId);
   if (!board) {
     return null;
   }
-  const isMember = board.memberIds.map((id) => id.toString().includes(userId));
-  if (!isMember) {
+  const role = getUserRoleInBoard(board, userId);
+  if (!role) {
     throw new Error('Forbidden');
   }
   return board;
@@ -35,7 +49,7 @@ export const getBoardById = async (boardId: string, userId: string) => {
 export const updateBoard = async (
   boardId: string,
   userId: string,
-  updateData: { name?: string },
+  updateData: { name?: string; dueDate?: Date },
 ) => {
   const board = await Board.findById(boardId);
 
@@ -43,14 +57,12 @@ export const updateBoard = async (
     throw new Error('Not Found');
   }
 
-  if (board.ownerId.toString() !== userId) {
-    throw new Error('Forbidden');
+  const role = getUserRoleInBoard(board, userId);
+  if (role === 'member') {
+    throw new Error('Forbidden: Members cannot update the board');
   }
 
-  if (updateData.name) {
-    board.name = updateData.name;
-  }
-
+  Object.assign(board, updateData);
   await board.save();
   return board;
 };
@@ -63,56 +75,73 @@ export const deleteBoard = async (boardId: string, userId: string) => {
   }
 
   if (board.ownerId.toString() !== userId) {
-    throw new Error('Forbidden');
+    throw new Error('Forbidden: Only the board owner can delete the board');
   }
-  await Board.findByIdAndDelete(board);
+  await Board.findByIdAndDelete(boardId);
 };
 
+// get all members cua 1 board
 export const getBoardMembers = async (boardId: string, userId: string) => {
-  // 1. Kiểm tra quyền truy cập: Dùng lại hàm getBoardById
   const board = await getBoardById(boardId, userId);
 
   if (!board) {
     throw new Error('Board not found');
   }
 
-  // 2. Lấy thông tin chi tiết của các thành viên
-  await board.populate({
-    path: 'memberIds',
-    select: 'fullName email _id', // Chỉ lấy các trường này
-  });
+  await board.populate([
+    { path: 'ownerId', select: 'fullName email _id' },
+    { path: 'coManagerIds', select: 'fullName email _id' },
+    { path: 'memberIds', select: 'fullName email _id' },
+  ]);
 
-  return board.memberIds;
+  return {
+    owner: board.ownerId,
+    coManagers: board.coManagerIds,
+    members: board.memberIds,
+    totalMembers: board.memberIds.length,
+  };
 };
 
-export const addMemberToBoard = async (
+// add co-manager
+export const addCoManager = async (
   boardId: string,
-  email: string,
+  targetUserId: string,
   userId: string,
 ) => {
   const board = await Board.findById(boardId);
-  if (!board) {
-    throw new Error('Board not found');
-  }
+  if (!board) throw new Error('Board not found');
 
+  // check role board owner
   if (board.ownerId.toString() !== userId) {
-    throw new Error('Forbidden: Only the board owner can add members');
+    throw new Error('Forbidden: Only owner can assign co-managers');
   }
 
-  const userToAdd = await User.findOne({ email });
-  if (!userToAdd) {
-    throw new Error('User not found with this email');
+  // check user co-manager da ton tai trong board chua
+  const targetObjectId = new Types.ObjectId(targetUserId);
+  if (!board.coManagerIds.includes(targetObjectId)) {
+    board.coManagerIds.push(targetObjectId);
+  }
+  await board.save();
+  return board;
+};
+
+// remove co-manager
+export const removeCoManager = async (
+  boardId: string,
+  targetUserId: string,
+  userId: string,
+) => {
+  const board = await Board.findById(boardId);
+  if (!board) throw new Error('Board not found');
+
+  // check role board owner
+  if (board.ownerId.toString() !== userId) {
+    throw new Error('Forbidden: Only owner can remove co-managers');
   }
 
-  const isAlreadyMember = board.memberIds.some(
-    (memberId) => memberId.toString() === (userToAdd as any)._id.toString(),
-  );
-  if (isAlreadyMember) {
-    throw new Error('User is already a member of this board');
-  }
-
-  board.memberIds.push((userToAdd as any)._id);
-
+  board.coManagerIds = board.coManagerIds.filter(
+    (id) => id.toString() !== targetUserId,
+  ) as any;
   await board.save();
   return board;
 };
