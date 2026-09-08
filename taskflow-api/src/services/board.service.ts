@@ -116,7 +116,6 @@ export const addCoManager = async (
     throw new Error('Forbidden: Only owner can assign co-managers');
   }
 
-  // check user co-manager da ton tai trong board chua
   const targetObjectId = new Types.ObjectId(targetUserId);
   if (!board.coManagerIds.includes(targetObjectId)) {
     board.coManagerIds.push(targetObjectId);

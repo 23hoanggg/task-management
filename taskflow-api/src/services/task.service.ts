@@ -1,6 +1,7 @@
 import { ITask, Task } from '../models/task.model';
 import { List } from '../models/list.model';
 import * as boardService from './board.service';
+import * as notificationService from './notification.service';
 import { io } from '../server';
 
 const emitTasksUpdate = (boardId: string) => {
@@ -10,8 +11,15 @@ const emitTasksUpdate = (boardId: string) => {
   );
 };
 
+// create task
 export const createTask = async (
-  taskData: { title: string; description?: string },
+  taskData: {
+    title: string;
+    description?: string;
+    priority?: 'low' | 'medium' | 'high';
+    dueDate?: Date;
+  },
+  boardId: string,
   listId: string,
   userId: string,
 ) => {
@@ -19,7 +27,6 @@ export const createTask = async (
   if (!parentList) {
     throw new Error('List not found');
   }
-  const boardId = parentList.boardId.toString();
 
   await boardService.getBoardById(boardId, userId);
 
@@ -28,10 +35,11 @@ export const createTask = async (
 
   const newTask = await Task.create({
     ...taskData,
-    boardId: boardId,
+    boardId,
     listId,
-    ownerId: userId,
+    creatorId: userId,
     order: newOrder,
+    assigneeIds: [],
   });
 
   emitTasksUpdate(boardId);
@@ -39,14 +47,16 @@ export const createTask = async (
   return newTask;
 };
 
+// lay task cua board theo id board
 export const getTasksByBoardId = async (boardId: string, userId: string) => {
   await boardService.getBoardById(boardId, userId);
-
-  const tasks = await Task.find({ boardId }).sort({ listId: 1, order: 1 });
-
+  const tasks = await Task.find({ boardId })
+    .populate('assigneeIds', 'fullName email')
+    .sort({ listId: 1, order: 1 });
   return tasks;
 };
 
+// lay task cua list theo id list
 export const getTaskById = async (taskId: string, userId: string) => {
   const task = await Task.findById(taskId);
   if (!task) {
@@ -63,6 +73,38 @@ export const updateTask = async (
 ) => {
   const task = await getTaskById(taskId, userId);
 
+  const board = await boardService.getBoardById(
+    task.boardId.toString(),
+    userId,
+  );
+  const role = boardService.getUserRoleInBoard(board!, userId);
+
+  // check role user: member chi duoc edit task do minh tao ra
+  if (role === 'member' && task.creatorId.toString() !== userId) {
+    throw new Error('Forbidden: Members can only edit their own tasks');
+  }
+
+  // Trigger notification nếu có người mới được gán
+  if (updateData.assigneeIds) {
+    const currentAssigneeIds = task.assigneeIds.map((id) => id.toString());
+    const newAssigneeIds = (updateData.assigneeIds as any[]).map((id) =>
+      id.toString(),
+    );
+    const newlyAdded = newAssigneeIds.filter(
+      (id) => !currentAssigneeIds.includes(id),
+    );
+
+    newlyAdded.forEach((assigneeId) => {
+      notificationService.createNotification({
+        userId: assigneeId,
+        title: 'Task Assigned',
+        content: `Bạn được gán vào thẻ: ${task.title}`,
+        targetUrl: `/boards/${task.boardId}/tasks/${task._id}`,
+        type: 'task_assigned',
+      });
+    });
+  }
+
   Object.assign(task, updateData);
   await task.save();
 
@@ -71,14 +113,26 @@ export const updateTask = async (
   return task;
 };
 
+// delete task
 export const deleteTask = async (taskId: string, userId: string) => {
   const task = await getTaskById(taskId, userId);
 
-  await Task.findByIdAndDelete(taskId);
+  const board = await boardService.getBoardById(
+    task.boardId.toString(),
+    userId,
+  );
+  const role = boardService.getUserRoleInBoard(board!, userId);
 
+  // check role member
+  if (role === 'member' && task.creatorId.toString() !== userId) {
+    throw new Error('Forbidden: Members can only delete their own tasks');
+  }
+
+  await Task.findByIdAndDelete(taskId);
   emitTasksUpdate(task.boardId.toString());
 };
 
+// reorder task
 export const reorderTasks = async (
   tasksToUpdate: { _id: string; order: number; listId: string }[],
   userId: string,
@@ -89,9 +143,30 @@ export const reorderTasks = async (
   if (!firstTask) throw new Error('Task not found');
 
   const boardId = firstTask.boardId.toString();
-  await boardService.getBoardById(boardId, userId);
+  const board = await boardService.getBoardById(boardId, userId);
+  const role = boardService.getUserRoleInBoard(board!, userId);
 
-  // Tạo các lệnh cập nhật cho bulkWrite
+  // check member tao task và member duoc gan vao task
+  if (role === 'member') {
+    const taskIds = tasksToUpdate.map((t) => t._id);
+    const tasks = await Task.find({ _id: { $in: taskIds } });
+
+    const allAllowed = tasks.every((t) => {
+      const isCreator = t.creatorId.toString() === userId;
+      const isAssignee = t.assigneeIds.some(
+        (assigneeId) => assigneeId.toString() === userId,
+      );
+
+      return isCreator || isAssignee;
+    });
+
+    if (!allAllowed) {
+      throw new Error(
+        'Forbidden: Members can only reorder tasks they created or are assigned to',
+      );
+    }
+  }
+
   const bulkOps = tasksToUpdate.map((task) => ({
     updateOne: {
       filter: { _id: task._id },

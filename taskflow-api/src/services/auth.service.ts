@@ -74,7 +74,7 @@ export const refreshAccessToken = async (token: string) => {
     const newAccessToken = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_ACCESS_TOKEN_SECRET as string,
-      { expiresIn: '15m' },
+      { expiresIn: '100m' },
     );
 
     return newAccessToken;
