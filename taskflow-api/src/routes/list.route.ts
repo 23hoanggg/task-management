@@ -11,10 +11,12 @@ import taskRoutes from './task.route';
 import { createTaskSchema } from '../validations/task.validation';
 import * as taskController from '../controllers/task.controller';
 
-const router = Router({ mergeParams: true });
+const router = Router({ mergeParams: true }); 
 
 router.use(authMiddleware);
+
 router.patch('/reorder', listController.reorderLists);
+
 router
   .route('/')
   .post(validate(createListSchema), listController.createList)
@@ -25,9 +27,8 @@ router
   .patch(validate(updateListSchema), listController.updateList)
   .delete(validate(listIdParamSchema), listController.deleteList);
 
+router.post('/:listId/tasks', validate(createTaskSchema), taskController.createTask);
+
 router.use('/:listId/tasks', taskRoutes);
 
-router
-  .route('/:listId/tasks')
-  .post(validate(createTaskSchema), taskController.createTask);
 export default router;

@@ -17,6 +17,9 @@ export const createList = async (
     );
     res.status(201).json({ data: newList });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
@@ -59,6 +62,9 @@ export const updateList = async (
     );
     res.status(200).json({ data: updatedList });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
@@ -75,6 +81,9 @@ export const deleteList = async (
     await listService.deleteList(listId as string, userId as string);
     res.sendStatus(204);
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
@@ -85,13 +94,15 @@ export const reorderLists = async (
   next: NextFunction,
 ) => {
   try {
-    // req.body sẽ có dạng { lists: [{ _id, order }, ...] }
     const { lists } = req.body;
     const userId = req.user!.userId;
 
     await listService.reorderLists(lists, userId);
     res.status(200).json({ message: 'List order updated successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };
