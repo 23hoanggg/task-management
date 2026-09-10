@@ -10,6 +10,8 @@ import authRoutes from './routes/auth.route';
 import boardRoutes from './routes/board.route';
 import invitationRoutes from './routes/invitation.route';
 import notificationRoutes from './routes/notification.route';
+import teamRoutes from './routes/team.route';
+import { Number } from 'mongoose';
 
 connectDB();
 
@@ -30,6 +32,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/boards', boardRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/teams', teamRoutes);
 
 const httpServer = createServer(app);
 

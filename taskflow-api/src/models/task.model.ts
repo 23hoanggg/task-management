@@ -5,8 +5,9 @@ export interface ITask extends Document {
   description?: string;
   boardId: Types.ObjectId;
   listId: Types.ObjectId;
-  creatorId: Types.ObjectId; 
+  creatorId: Types.ObjectId;
   assigneeIds: Types.ObjectId[];
+  assigneeTeamIds: Types.ObjectId[];
   order: number;
   priority: 'low' | 'medium' | 'high';
   dueDate?: Date;
@@ -48,6 +49,12 @@ const taskSchema = new Schema<ITask>(
         ref: 'User',
       },
     ],
+    assigneeTeamIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Team',
+      },
+    ],
     order: {
       type: Number,
       required: true,
@@ -62,7 +69,7 @@ const taskSchema = new Schema<ITask>(
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
     versionKey: false,
   },
 );

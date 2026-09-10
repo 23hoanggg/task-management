@@ -3,6 +3,7 @@ import { List } from '../models/list.model';
 import * as boardService from './board.service';
 import * as notificationService from './notification.service';
 import { io } from '../server';
+import { Team } from '../models/team.model';
 
 const emitTasksUpdate = (boardId: string) => {
   io.to(boardId).emit('tasks:updated');
@@ -40,6 +41,7 @@ export const createTask = async (
     creatorId: userId,
     order: newOrder,
     assigneeIds: [],
+    assigneeTeamIds: [],
   });
 
   emitTasksUpdate(boardId);
@@ -50,12 +52,14 @@ export const createTask = async (
 // lay task cua board theo id board
 export const getTasksByBoardId = async (boardId: string, userId: string) => {
   await boardService.getBoardById(boardId, userId);
+
   const tasks = await Task.find({ boardId })
-    .populate('assigneeIds', 'fullName email')
+    .populate('assigneeIds', 'fullName email avatar')
+    .populate('assigneeTeamIds', '_id name')
     .sort({ listId: 1, order: 1 });
+
   return tasks;
 };
-
 // lay task cua list theo id list
 export const getTaskById = async (taskId: string, userId: string) => {
   const task = await Task.findById(taskId);
@@ -151,18 +155,42 @@ export const reorderTasks = async (
     const taskIds = tasksToUpdate.map((t) => t._id);
     const tasks = await Task.find({ _id: { $in: taskIds } });
 
-    const allAllowed = tasks.every((t) => {
-      const isCreator = t.creatorId.toString() === userId;
-      const isAssignee = t.assigneeIds.some(
-        (assigneeId) => assigneeId.toString() === userId,
-      );
+    // Lấy các nhóm mà user này đang tham gia trong Bảng
+    const userTeams = (await Team.find({
+      boardId,
+      memberIds: userId,
+    })) as Array<{ _id: { toString: () => string } }>;
+    const userTeamIds = userTeams.map((t) => t._id.toString());
 
-      return isCreator || isAssignee;
+    // Tạo bộ từ điển mapping id của task gửi lên với listId muốn chuyển tới
+    const updateMap = new Map(tasksToUpdate.map((t) => [t._id, t.listId]));
+
+    const allAllowed = tasks.every((t) => {
+      const taskId = String(t._id);
+      const incomingListId = updateMap.get(taskId);
+      const isChangingList =
+        incomingListId && t.listId.toString() !== incomingListId;
+
+      // NẾU KÉO SANG CỘT KHÁC -> Bắt buộc check quyền
+      if (isChangingList) {
+        const isCreator = t.creatorId.toString() === userId;
+        const isAssignee = t.assigneeIds.some(
+          (assigneeId) => assigneeId.toString() === userId,
+        );
+        const isTeamAssignee = t.assigneeTeamIds.some((teamId) =>
+          userTeamIds.includes(teamId.toString()),
+        );
+
+        return isCreator || isAssignee || isTeamAssignee;
+      }
+
+      // NẾU KÉO TRONG CÙNG 1 CỘT (Chỉ đổi order) -> Cho phép tất cả
+      return true;
     });
 
     if (!allAllowed) {
       throw new Error(
-        'Forbidden: Members can only reorder tasks they created or are assigned to',
+        'Forbidden: Members can only move their own tasks to another list',
       );
     }
   }

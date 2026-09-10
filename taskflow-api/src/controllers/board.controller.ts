@@ -22,13 +22,29 @@ export const getBoards = async (
 ) => {
   try {
     const userId = req.user!.userId;
-    const boards = await boardService.getBoardByUserId(userId);
-    res.status(200).json({ data: boards });
+
+    // Lấy params từ query, đặt giá trị mặc định nếu không có
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 12;
+    const search = (req.query.search as string) || '';
+    const sort = (req.query.sort as string) || 'desc';
+
+    const result = await boardService.getBoardsWithPagination(
+      userId,
+      page,
+      limit,
+      search,
+      sort,
+    );
+
+    res.status(200).json({
+      data: result.boards,
+      meta: result.meta,
+    });
   } catch (error) {
     next(error);
   }
 };
-
 export const getBoardById = async (
   req: Request,
   res: Response,

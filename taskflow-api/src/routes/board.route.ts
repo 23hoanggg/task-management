@@ -8,6 +8,7 @@ import {
 import * as boardController from '../controllers/board.controller';
 import * as taskController from '../controllers/task.controller';
 import * as invitationController from '../controllers/board-invitation.controller';
+import * as userController from '../controllers/user.controller';
 import listRoutes from './list.route';
 
 const router = Router();
@@ -43,5 +44,6 @@ router.post('/:boardId/invitations', invitationController.inviteUser);
 // Thao tác với Tasks trong phạm vi Board
 router.get('/:boardId/tasks', taskController.getTasksByBoard);
 router.patch('/:boardId/tasks/reorder', taskController.reorderTasks);
+router.get('/:boardId/users/search', userController.searchUsersToInvite);
 
 export default router;

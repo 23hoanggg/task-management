@@ -2,13 +2,15 @@ import { Document, Schema, model, Types } from 'mongoose';
 
 export interface INotification extends Document {
   userId: Types.ObjectId; // id nguoi nhan
-  title: string; 
-  content: string; 
-  targetUrl?: string; 
+  title: string;
+  content: string;
+  targetUrl?: string;
   isRead: boolean;
   type: 'mention' | 'task_assigned' | 'board_invite' | 'deadline' | 'system';
-  createdAt: Date;
-  updatedAt: Date;
+  invitationId?: Types.ObjectId;
+  boardId?: Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const notificationSchema = new Schema<INotification>(
@@ -40,11 +42,24 @@ const notificationSchema = new Schema<INotification>(
       enum: ['mention', 'task_assigned', 'board_invite', 'deadline', 'system'],
       required: true,
     },
+    invitationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Invitation',
+      default: null,
+    },
+    boardId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Board',
+      default: null,
+    },
   },
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
-export const Notification = model<INotification>('Notification', notificationSchema);
+export const Notification = model<INotification>(
+  'Notification',
+  notificationSchema,
+);

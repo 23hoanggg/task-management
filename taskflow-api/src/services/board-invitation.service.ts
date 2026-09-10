@@ -41,8 +41,10 @@ export const inviteUserByEmail = async (
     userId: String(invitee._id),
     title: 'Lời mời tham gia bảng',
     content: `Bạn được mời tham gia bảng ${board!.name}`,
-    targetUrl: `/invitations/${invitation._id}`,
+    targetUrl: `/boards/${boardId}`,
     type: 'board_invite',
+    invitationId: String(invitation._id),
+    boardId: boardId,
   });
 
   return invitation;
@@ -54,6 +56,7 @@ export const acceptInvitation = async (
   userId: string,
 ) => {
   const invitation = await BoardInvitation.findById(invitationId);
+
   // check trang thai loi moi
   if (!invitation || invitation.status !== 'pending')
     throw new Error('Invalid invitation');
@@ -70,6 +73,24 @@ export const acceptInvitation = async (
   // them user vao Board
   board.memberIds.push(invitation.inviteeId);
   await board.save();
+
+  return invitation;
+};
+
+// User decline invite
+export const declineInvitation = async (
+  invitationId: string,
+  userId: string,
+) => {
+  const invitation = await BoardInvitation.findById(invitationId);
+
+  if (!invitation || invitation.status !== 'pending')
+    throw new Error('Invalid invitation');
+
+  if (invitation.inviteeId.toString() !== userId) throw new Error('Forbidden');
+
+  invitation.status = 'rejected';
+  await invitation.save();
 
   return invitation;
 };

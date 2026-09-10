@@ -5,6 +5,7 @@ import * as invitationController from '../controllers/board-invitation.controlle
 const router = Router();
 
 router.use(authMiddleware);
-router.post('/:invitationId/accept', invitationController.acceptInvite);
+
+router.post('/:invitationId/respond', invitationController.respondInvite);
 
 export default router;

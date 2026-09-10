@@ -5,7 +5,14 @@ import * as notificationController from '../controllers/notification.controller'
 const router = Router();
 
 router.use(authMiddleware);
+
 router.get('/', notificationController.getMyNotifications);
-router.patch('/:notificationId/read', notificationController.markNotificationAsRead);
+
+router.patch('/read-all', notificationController.markAllNotificationsAsRead);
+
+router.patch(
+  '/:notificationId/read',
+  notificationController.markNotificationAsRead,
+);
 
 export default router;
